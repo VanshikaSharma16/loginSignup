@@ -10,26 +10,24 @@ router.post('/register', async (req, res) => {
   
   try {
     db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Database error' });
-      }
+      if (err) throw err;
       
       if (results.length > 0) {
         return res.status(400).json({ message: 'User already exists' });
       }
       
-      const saltRounds = 10;
-      const hashedPassword = await bcrypt.hash(password, saltRounds);
+      const hashedPassword = await bcrypt.hash(password, 10);
       
       db.query('INSERT INTO users SET ?', { name, email, password: hashedPassword }, (err, result) => {
-        if (err) {
-          console.error(err);
-          return res.status(500).json({ message: 'Database error' });
-        }
+        if (err) throw err;
         
+        // Token में name भी include करें
         const token = jwt.sign(
-          { id: result.insertId, email },
+          { 
+            id: result.insertId, 
+            email: email,
+            name: name // name add करें
+          },
           process.env.JWT_SECRET,
           { expiresIn: '1h' }
         );
@@ -42,7 +40,6 @@ router.post('/register', async (req, res) => {
       });
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
@@ -52,25 +49,26 @@ router.post('/login', (req, res) => {
   
   try {
     db.query('SELECT * FROM users WHERE email = ?', [email], async (err, results) => {
-      if (err) {
-        console.error(err);
-        return res.status(500).json({ message: 'Database error' });
-      }
+      if (err) throw err;
       
       if (results.length === 0) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
       
       const user = results[0];
-      
       const isMatch = await bcrypt.compare(password, user.password);
       
       if (!isMatch) {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
       
+      // Token में name भी include करें
       const token = jwt.sign(
-        { id: user.id, email: user.email },
+        { 
+          id: user.id, 
+          email: user.email,
+          name: user.name // name add करें
+        },
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
       );
@@ -82,13 +80,45 @@ router.post('/login', (req, res) => {
       });
     });
   } catch (err) {
-    console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 });
-
 router.get('/profile', auth, (req, res) => {
-  res.json({ message: 'Profile accessed successfully', user: req.user });
+  try {
+    console.log('User from token:', req.user);
+    
+    // सीधे token से user information return करें
+    res.json({
+      message: 'Profile accessed successfully',
+      user: {
+        id: req.user.id,
+        name: req.user.name, // जब register करते हैं तो name को token में include करें
+        email: req.user.email
+      }
+    });
+    
+    // अगर database से fetch करना है तो:
+    /*
+    db.query('SELECT id, name, email FROM users WHERE id = ?', [req.user.id], (err, results) => {
+      if (err) {
+        console.error('Database error:', err);
+        return res.status(500).json({ message: 'Database error' });
+      }
+      
+      if (results.length === 0) {
+        return res.status(404).json({ message: 'User not found' });
+      }
+      
+      res.json({
+        message: 'Profile accessed successfully',
+        user: results[0]
+      });
+    });
+    */
+  } catch (error) {
+    console.error('Profile error:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;
