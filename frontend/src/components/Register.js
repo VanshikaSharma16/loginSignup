@@ -96,4 +96,4 @@ const Register = () => {
   );
 };
 
-export default Register; // यह line जोड़ें
+export default Register;

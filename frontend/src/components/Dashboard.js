@@ -18,13 +18,11 @@ const Dashboard = () => {
         return;
       }
       
-      // First try to use stored user data
       if (storedUser) {
         setUser(JSON.parse(storedUser));
       }
       
       try {
-        // Verify token and get fresh user data
         const res = await axios.get('http://localhost:5001/api/auth/profile', {
           headers: {
             Authorization: `Bearer ${token}`
@@ -35,7 +33,6 @@ const Dashboard = () => {
       } catch (err) {
         console.error('Profile fetch error:', err);
         if (err.response?.status === 401) {
-          // Token invalid or expired
           localStorage.removeItem('token');
           localStorage.removeItem('user');
           navigate('/login');

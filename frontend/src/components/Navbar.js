@@ -36,4 +36,4 @@ const Navbar = () => {
   );
 };
 
-export default Navbar; // यह line जोड़ें
+export default Navbar;

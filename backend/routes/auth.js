@@ -1,5 +1,5 @@
 const express = require('express');
-const bcrypt = require('bcryptjs'); // यह line सही करें
+const bcrypt = require('bcryptjs'); 
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const auth = require('../middleware/auth');
@@ -20,13 +20,11 @@ router.post('/register', async (req, res) => {
       
       db.query('INSERT INTO users SET ?', { name, email, password: hashedPassword }, (err, result) => {
         if (err) throw err;
-        
-        // Token में name भी include करें
         const token = jwt.sign(
           { 
             id: result.insertId, 
             email: email,
-            name: name // name add करें
+            name: name
           },
           process.env.JWT_SECRET,
           { expiresIn: '1h' }
@@ -62,12 +60,11 @@ router.post('/login', (req, res) => {
         return res.status(400).json({ message: 'Invalid credentials' });
       }
       
-      // Token में name भी include करें
       const token = jwt.sign(
         { 
           id: user.id, 
           email: user.email,
-          name: user.name // name add करें
+          name: user.name
         },
         process.env.JWT_SECRET,
         { expiresIn: '1h' }
@@ -83,38 +80,19 @@ router.post('/login', (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 });
+
 router.get('/profile', auth, (req, res) => {
   try {
     console.log('User from token:', req.user);
     
-    // सीधे token से user information return करें
     res.json({
       message: 'Profile accessed successfully',
       user: {
         id: req.user.id,
-        name: req.user.name, // जब register करते हैं तो name को token में include करें
+        name: req.user.name,
         email: req.user.email
       }
     });
-    
-    // अगर database से fetch करना है तो:
-    /*
-    db.query('SELECT id, name, email FROM users WHERE id = ?', [req.user.id], (err, results) => {
-      if (err) {
-        console.error('Database error:', err);
-        return res.status(500).json({ message: 'Database error' });
-      }
-      
-      if (results.length === 0) {
-        return res.status(404).json({ message: 'User not found' });
-      }
-      
-      res.json({
-        message: 'Profile accessed successfully',
-        user: results[0]
-      });
-    });
-    */
   } catch (error) {
     console.error('Profile error:', error);
     res.status(500).json({ message: 'Server error' });
